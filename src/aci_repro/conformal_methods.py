@@ -116,7 +116,7 @@ def dtaci(
     etas: list[float] = []
     sq_losses: list[float] = []
     window = I + 2
-    window_sum = 1.0
+    window_sum = 0.0
 
     for t in range(T):
         b = betas[t]
