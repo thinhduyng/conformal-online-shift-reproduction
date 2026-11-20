@@ -24,7 +24,7 @@ from aci_repro.conformal_methods import global_coverage, local_coverage, run_met
 from aci_repro.covid import COUNTIES, HORIZON, LAGS, TRAIN_WINDOW, cached_betas, county_betas, load_panel
 from aci_repro.paths import FIGURES
 from aci_repro.plotting import savefig, use_style
-
+import matplotlib.dates as mdates
 ALPHA = 0.1
 LOCAL_WINDOW = 200
 COLORS = {"DtACI": "#1f77b4", "AgACI": "#d62728", "MVP": "#2ca02c", "Constant": "#7f7f7f",
@@ -75,6 +75,9 @@ def plot_cases(dates, co: np.ndarray, cols: dict[str, int], prefix: str = "") ->
     fig, axes = plt.subplots(2, 2, figsize=(11, 6))
     for ax, (county, j) in zip(axes.ravel(), cols.items()):
         ax.plot(dates, co[:, j])
+        loc = mdates.AutoDateLocator()
+        ax.xaxis.set_major_locator(loc)
+        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
         ax.set_title(county)
         ax.set_ylabel("7-day avg cases")
     fig.suptitle("Confirmed COVID-19 cases (7-day average)")
@@ -112,6 +115,12 @@ def main() -> None:
     print("\nGlobal coverage (target 0.90):\n", table.round(3))
     pre = "synthetic_" if a.source == "synthetic" else ""  # never overwrite real figures
     table.round(4).to_csv(FIGURES / f"{pre}covid_global_coverage.csv")
+    rng = {m: {nm: f"{np.nanmin(local_coverage(r[m]['err'], LOCAL_WINDOW)):.2f}–"
+                f"{np.nanmax(local_coverage(r[m]['err'], LOCAL_WINDOW)):.2f}"
+            for nm, r in results.items()} for m in RUNS}
+    print("\nLocal coverage range (min–max):\n", pd.DataFrame(rng))
+
+
 
     plot_cases(panel.dates, panel.co, cols, pre)
     plot_local(results, ["Constant", "MVP", "AgACI", "DtACI"], "fig_4_8_covid_local_coverage",
