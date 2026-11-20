@@ -1,6 +1,7 @@
 import math
 import random
 from collections.abc import Callable
+from itertools import accumulate
 from typing import Any, TypedDict
 
 GAMMAS: list[float] = [0.001, 0.002, 0.004, 0.008, 0.016, 0.032, 0.064, 0.128]
@@ -114,6 +115,8 @@ def dtaci(
     weights: list[list[float]] = []
     etas: list[float] = []
     sq_losses: list[float] = []
+    window = I + 2
+    window_sum = 1.0
 
     for t in range(T):
         b = betas[t]
@@ -128,9 +131,12 @@ def dtaci(
         losses = [pinball_loss(b, a[i], alpha) for i in range(k)]
 
         sq_losses.append(sum(p[i] * losses[i] ** 2 for i in range(k)))
+        window_sum += sq_losses[-1]
+        if len(sq_losses) > window:
+            window_sum -= sq_losses[-(window + 1)]
         eta_t = eta
-        if variable_eta and len(sq_losses) >= I + 2:
-            eta_t = math.sqrt((math.log(2 * k * I) + 1) / sum(sq_losses[-(I + 2):]))
+        if variable_eta and len(sq_losses) >= window:
+            eta_t = math.sqrt((math.log(2 * k * I) + 1) / window_sum)
         etas.append(eta_t)
 
         w_bar = [w[i] * math.exp(-eta_t * losses[i]) for i in range(k)]
@@ -227,15 +233,17 @@ def mvp(
     def f(n: int) -> float:
         return math.sqrt((n + 1) * math.log(n + 2) ** 2)
 
+    def c_val(v: float, cnt: int) -> float:
+        fn = f(cnt)
+        return (math.exp(eta * v / fn) - math.exp(-eta * v / fn)) / fn
+
     n = [0] * m
     V = [0.0] * m
+    C = [c_val(V[i], n[i]) for i in range(m)]
     alphas: list[float] = []
     err: list[int] = []
 
     for b in betas:
-        C = [(math.exp(eta * V[i] / f(n[i])) - math.exp(-eta * V[i] / f(n[i]))) / f(n[i])
-             for i in range(m)]
-
         if all(c > 0 for c in C):
             q = 0.0
             bin_idx = 0
@@ -262,6 +270,7 @@ def mvp(
 
         n[bin_idx] += 1
         V[bin_idx] += alpha - e
+        C[bin_idx] = c_val(V[bin_idx], n[bin_idx])
 
     return _result(alphas, err)
 
@@ -295,6 +304,7 @@ def local_coverage(err: list[int], w: int) -> list[float]:
     T = len(err)
     half = w // 2
     out = [math.nan] * T
+    c = [0, *accumulate(err)]
     for t in range(half - 1, T - half):
-        out[t] = 1 - sum(err[t - half + 1: t + half + 1]) / w
+        out[t] = 1 - (c[t + half + 1] - c[t - half + 1]) / w
     return out
