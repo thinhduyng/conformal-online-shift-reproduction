@@ -18,6 +18,10 @@ METHOD_COLORS = {
     "aci": "#1f77b4",
     "standard": "#d62728",  # non-adaptive split conformal (gamma = 0)
     "target": "#555555",  # target coverage line, 1 - alpha
+    "dtaci": "#3b6fb6",
+    "agaci": "#e0533f",
+    "mvp": "#2ca02c",
+    "alpha_star": "black",
 }
 
 
