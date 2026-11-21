@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import time
 
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -141,7 +142,7 @@ def main() -> None:
     if a.wandb:
         import wandb
 
-        run = wandb.init(project="conformal-dtaci-repro", name=f"exp4-covid-{a.source}", config=dict(
+        run = wandb.init(entity="ml-2", project="conformal-dtaci-repro", name=f"exp4-covid-{a.source}", config=dict(
             alpha=ALPHA, local_window=LOCAL_WINDOW, horizon=HORIZON, train_window=TRAIN_WINDOW,
             lags=LAGS, n_days=T, n_counties=n, source=a.source, seed=0))
         run.log({"global_coverage": wandb.Table(dataframe=table.reset_index())})
